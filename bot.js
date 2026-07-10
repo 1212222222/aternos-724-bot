@@ -9,7 +9,7 @@ const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
-    username: 'Akıllı',              
+    username: 'Kole',              
     version: '1.21.11'               
 };
 
