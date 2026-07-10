@@ -131,28 +131,27 @@ Botun şu anki durumu:
   let response
 // index.js içindeki askAI fonksiyonunun içindeki fetch bloğunu bununla değiştir:
 
-  try {
-    // Model ismi doğrudan gemini-2.5-flash olarak ayarlandı.
-    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
+  // index.js dosyanı aç ve şu kısmı tam olarak böyle yap:
+response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    method: 'POST',
+    headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    },
+    body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: systemPrompt }]
+            parts: [{ text: systemPrompt }]
         },
         contents: [
-          {
-            parts: [{ text: `${username}: ${message}` }]
-          }
+            {
+                parts: [{ text: `${username}: ${message}` }]
+            }
         ],
         generationConfig: {
-          maxOutputTokens: 600,
-          temperature: 0.1 
+            maxOutputTokens: 600,
+            temperature: 0.1 
         }
-      })
     })
+})
   } catch (networkErr) {
     console.error('[AI] AĞ HATASI:', networkErr)
     return "bot.chat('Ağ hatası oldu.')"
