@@ -3,29 +3,39 @@ const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const { GoogleGenAI, Type } = require('@google/genai');
 
 // 1. Yapay Zeka ve Sunucu Ayarları
-const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini yapıştır knk
+const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini buraya yapıştır knk
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
     username: 'YapayZeka_Isci',
-    // Sürüm kontrolünü tamamen devre dışı bırakıp bota zorla bu protokolü kullandırıyoruz
-    version: false,
-    protocolVersion: 767 // 1.21 / 1.21.1 için kullanılan net ağ protokol numarası
+    version: '1.21' // Mineflayer'ın tanıdığı ana sürüm kökünü veriyoruz
 };
+
+// --- KRİTİK SÜRÜM DUVARI AŞMA HACK'İ ---
+// Sunucu ne döndürürse döndürsün (1.21.11 dahil), bota zorla 1.21 protokolünü dayatıyoruz
+const mcData = require('minecraft-data')(botOptions.version);
+if (mcData) {
+    botOptions.protocolVersion = mcData.version.protocol;
+}
+
 let bot = mineflayer.createBot(botOptions);
+
+// Sunucudan gelen o hatalı 1.21.11 ping yanıtını filtreleyip bota enjekte ediyoruz
+bot._client.on('connect', () => {
+    bot._client.version = botOptions.version;
+});
+
 bot.loadPlugin(pathfinder);
 
-// Botun kendi kendine karar verip hafızaya alacağı görev metni
 let aktifArkaPlanGorevi = null; 
 
 bot.on('spawn', () => {
-    console.log(`${bot.username} %100 Yapay Algı Modülü Aktif!`);
+    console.log(`${bot.username} Sürüm Engeli Aşıldı, %100 Yapay Algı Aktif!`);
     const defaultMovements = new Movements(bot, require('minecraft-data')(bot.version));
     bot.pathfinder.setMovements(defaultMovements);
 
-    // Sunucudan düşüp geri girdiyse ve hafızasındaki iş uzun vadeliyse devam etsin
     if (aktifArkaPlanGorevi) {
         console.log("Hafızadaki arka plan görevi sürdürülüyor...");
         beyinIslemcisi(aktifArkaPlanGorevi, "Sistem");
@@ -54,8 +64,7 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
             contents: oyuncuMesaji,
             config: {
                 systemInstruction: sistemTalimati,
-                temperature: 0.1, // Hata yapmaması için çok kararlı çalıştırıyoruz
-                // Gemini'ın bize vereceği cevabın kalıbını zorunlu kılıyoruz:
+                temperature: 0.1,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -74,7 +83,6 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
             }
         });
 
-        // Gemini'dan gelen kesin yanıtı JSON olarak ayrıştırıyoruz
         const analizSonucu = JSON.parse(response.text.trim());
 
         console.log("--- GEMINI ALGI VE KARAR ÇIKTISI ---");
@@ -82,12 +90,10 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
         console.log(`Üretilen Kod:\n${analizSonucu.javascriptKodu}`);
         console.log("------------------------------------");
 
-        // Eğer Gemini bunun bir arkadan iş bırakıp ayrılma durumu olduğunu onayladıysa hafızaya al
         if (analizSonucu.uzunVadeliGorevMi === true) {
             aktifArkaPlanGorevi = oyuncuMesaji;
         }
 
-        // Kodu canlı olarak bota enjekte et ve çalıştır
         eval(analizSonucu.javascriptKodu);
 
     } catch (error) {
@@ -95,11 +101,9 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
     }
 }
 
-// 3. Chat Dinleyici (Sıfır Filtre, Direkt Beyne Sevk)
+// 3. Chat Dinleyici
 bot.on('chat', async (username, message) => {
     if (username === bot.username) return;
-
-    // Gelen mesajda ne yazdığına bakmaksızın direkt Gemini'ın yorumlamasına gönderiyoruz
     await beyinIslemcisi(message, username);
 });
 
@@ -107,6 +111,9 @@ bot.on('chat', async (username, message) => {
 bot.on('end', () => {
     setTimeout(() => {
         bot = mineflayer.createBot(botOptions);
+        bot._client.on('connect', () => {
+            bot._client.version = botOptions.version;
+        });
         bot.loadPlugin(pathfinder);
     }, 10000);
 });
