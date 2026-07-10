@@ -1,7 +1,16 @@
-"dependencies": {
-    "mineflayer": "latest",
-    "minecraft-protocol": "latest",
+{
+  "name": "aternos-724-bot",
+  "version": "1.0.0",
+  "description": "Minecraft Aternos Bot",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "@google/genai": "latest",
     "minecraft-data": "latest",
-    "mineflayer-pathfinder": "latest",
-    "@google/genai": "latest"
+    "minecraft-protocol": "latest",
+    "mineflayer": "latest",
+    "mineflayer-pathfinder": "latest"
   }
+}
