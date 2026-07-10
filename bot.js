@@ -1,9 +1,11 @@
+const mineflayer = require('mineflayer'); // <--- Eksik olan ve hataya sebep olan satır burasıydı!
+
 // 2. Sunucu Bağlantı Ayarları
 const botOptions = {
-    host: 'Verity-PGWq.aternos.me', // Senin sunucu IP'n[cite: 1]
+    host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
     username: 'AfkDede_724',              
-    version: '1.21.11'               // <--- BU SATIRI EKLEDİK (Sürümü sabitledik)
+    version: '1.21.11'               
 };
 
 let bot = mineflayer.createBot(botOptions);
@@ -23,34 +25,67 @@ const mesajHavuzu = [
 ];
 
 bot.on('spawn', () => {
-    console.log(`${bot.username} giriş yaptı!`);
+    console.log(`${bot.username} başarıyla giriş yaptı!`);
     
-    // Rastgele hareket (12 saniyede bir)
+    // Rastgele hareket döngüsü (Her 12 saniyede bir karar verir)
     setInterval(() => {
-        if (!bot.entity) return;
-        const eylem = Math.floor(Math.random() * 5);
-        const sure = Math.floor(Math.random() * 2000) + 1000;
-
-        if (eylem === 0) { bot.setControlState('forward', true); setTimeout(() => bot.setControlState('forward', false), sure); }
-        else if (eylem === 1) { bot.setControlState('back', true); setTimeout(() => bot.setControlState('back', false), sure); }
-        else if (eylem === 2) { bot.setControlState('jump', true); setTimeout(() => bot.setControlState('jump', false), 500); }
-        else if (eylem === 3) { bot.look((Math.random() * Math.PI * 2) - Math.PI, (Math.random() * Math.PI / 2) - (Math.PI / 4), true); }
-        else if (eylem === 4) { bot.setControlState('left', true); setTimeout(() => bot.setControlState('left', false), sure); }
+        rastgeleHareketEt();
     }, 12000);
 
-    // Rastgele sohbet (3-6 dakika arası)
-    function sohbet() {
+    // Rastgele sohbet döngüsü (Her 3 ila 6 dakika arasında)
+    function sohbetDongusu() {
+        const rastgeleSure = Math.floor(Math.random() * (360000 - 180000 + 1)) + 180000;
         setTimeout(() => {
             if (bot && bot.entity) {
-                const msg = mesajHavuzu[Math.floor(Math.random() * mesajHavuzu.length)];
-                bot.chat(msg);
+                const rastgeleMesaj = mesajHavuzu[Math.floor(Math.random() * mesajHavuzu.length)];
+                bot.chat(rastgeleMesaj);
+                console.log(`Bot Chat Mesajı Gönderdi: ${rastgeleMesaj}`);
             }
-            sohbet();
-        }, Math.floor(Math.random() * (360000 - 180000 + 1)) + 180000);
+            sohbetDongusu();
+        }, rastgeleSure);
     }
-    sohbet();
+    
+    sohbetDongusu();
 });
 
+// Aternos'u yanıltan hareket fonksiyonu
+function rastgeleHareketEt() {
+    if (!bot.entity) return;
+
+    const eylemSecimi = Math.floor(Math.random() * 5);
+    const rastgeleSure = Math.floor(Math.random() * 2000) + 1000;
+
+    switch (eylemSecimi) {
+        case 0:
+            bot.setControlState('forward', true);
+            setTimeout(() => bot.setControlState('forward', false), rastgeleSure);
+            break;
+        case 1:
+            bot.setControlState('back', true);
+            setTimeout(() => bot.setControlState('back', false), rastgeleSure);
+            break;
+        case 2:
+            bot.setControlState('jump', true);
+            setTimeout(() => bot.setControlState('jump', false), 500);
+            break;
+        case 3:
+            const yaw = (Math.random() * Math.PI * 2) - Math.PI;
+            const pitch = (Math.random() * Math.PI / 2) - (Math.PI / 4);
+            bot.look(yaw, pitch, true);
+            break;
+        case 4:
+            bot.setControlState('left', true);
+            setTimeout(() => bot.setControlState('left', false), rastgeleSure);
+            break;
+    }
+}
+
+// Bağlantı koparsa otomatik olarak 10 saniye sonra tekrar bağlanır
 bot.on('end', () => {
-    setTimeout(() => { bot = mineflayer.createBot(botOptions); }, 10000);
+    console.log('Bağlantı kesildi. Tekrar bağlanılıyor...');
+    setTimeout(() => {
+        bot = mineflayer.createBot(botOptions);
+    }, 10000);
 });
+
+bot.on('error', (err) => console.log('Hata:', err));
