@@ -2,23 +2,24 @@ const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const { GoogleGenAI, Type } = require('@google/genai');
 
-// --- HATA VERMEYEN YENİ SÜRÜM HACK'İ (1.21.11) ---
-const protocol = require('minecraft-protocol');
-// Sürümlerin tutulduğu objeye 1.21.11'i, 1.21 sürümüyle birebir aynı olacak şekilde ekliyoruz
-if (protocol.supportedVersions) {
-    protocol.supportedVersions.push('1.21.11');
-}
-// ------------------------------------------------------
+// --- SÜRÜM KONTROLÜNÜ KÖKTEN DEVRE DIŞI BIRAKMA HACK'İ ---
+const Client = require('minecraft-protocol').Client;
+// Kütüphanenin sunucu sürümünü test edip hata fırlatan fonksiyonunun içini boşaltıyoruz!
+Client.prototype.checkVersion = function() {
+    // Hiçbir şey yapma, hata fırlatma, direkt geçiş izni ver.
+    return true;
+};
+// --------------------------------------------------------
 
 // 1. Yapay Zeka ve Sunucu Ayarları
-const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini buraya yapıştır knk
+const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini yapıştır knk
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
     username: 'YapayZeka_Isci',
-    version: '1.21' // Mineflayer arkada 1.21 datasını kullansın ama protokolü 1.21.11 olarak görsün
+    version: '1.21' // Fiziksel veri tabanı olarak en kararlı 1.21 modülünü kullansın
 };
 
 let bot = mineflayer.createBot(botOptions);
@@ -27,7 +28,7 @@ bot.loadPlugin(pathfinder);
 let aktifArkaPlanGorevi = null; 
 
 bot.on('spawn', () => {
-    console.log(`${bot.username} Sürüm Engeli Tamamen Parçalandı, %100 Yapay Algı Aktif!`);
+    console.log(`${bot.username} Sürüm Kontrolü Yok Edildi, %100 Yapay Algı Aktif!`);
     const defaultMovements = new Movements(bot, require('minecraft-data')('1.21'));
     bot.pathfinder.setMovements(defaultMovements);
 
