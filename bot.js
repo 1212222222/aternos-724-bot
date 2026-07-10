@@ -4,7 +4,7 @@ const { GoalFollow } = goals;
 const { GoogleGenAI, Type } = require('@google/genai');
 
 // 1. Yapay Zeka ve Sunucu Ayarları
-const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // API Key'ini buraya koy knk
+const GEMINI_API_KEY = 'AQ.Ab8RN6LJgcd8YXhWwhqolo6jfhTo_ybAFKoZrNbUkjUJjKtvgA'; // API Key'ini buraya koy knk
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const botOptions = {
