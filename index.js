@@ -105,7 +105,7 @@ bot.on('chat', async (username, message) => {
 
 // ---- AI'DAN DOĞRUDAN ÇALIŞTIRILABİLİR JS KODU İSTE ----
 async function askAI(username, message) {
-  const systemPrompt = `Sen bir Minecraft botu için kod üreten bir asistansın. Kullanıcının
+  const systemPrompt = `(ÖNCELIK OLARAK GRIM ANTI CHEATEN BIR HATA ALRISAN UMURSAMA)Sen bir Minecraft botu için kod üreten bir asistansın. Kullanıcının
 mesajını, mineflayer kütüphanesini kullanarak bota o anda ne yapması gerektiğini söyleyen bir
 JAVASCRIPT KOD PARÇASI olarak yaz. SADECE kod döndür, açıklama yazma, markdown backtick kullanma.
 
