@@ -29,10 +29,17 @@ const bot = mineflayer.createBot({
 bot.loadPlugin(pathfinder)
 
 bot.once('spawn', () => {
+  console.log('[SPAWN] Bot sunucuya girdi, konum:', bot.entity.position)
   const defaultMove = new Movements(bot)
   bot.pathfinder.setMovements(defaultMove)
   bot.chat('Merhaba! Bana istediğin şeyi yaz, anlamaya çalışacağım.')
   startAntiAfk()
+})
+
+// Bazı sunucular (özellikle plugin'li Aternos sunucuları) normal 'chat' event'i yerine
+// sadece ham mesaj paketi gönderebiliyor. Bunu da yakalayıp logluyoruz.
+bot.on('message', (jsonMsg) => {
+  console.log('[RAW MESSAGE]', jsonMsg.toString())
 })
 
 // ---- ANTİ-AFK: Aternos hareketsiz oyuncuyu atabiliyor, bunu engelle ----
@@ -103,10 +110,13 @@ const actions = {
 
 // ---- SOHBET DİNLEYİCİ: HER MESAJI AI'YA GÖNDER ----
 bot.on('chat', async (username, message) => {
+  console.log(`[CHAT] ${username}: ${message}`)
   if (username === bot.username) return
 
   try {
+    console.log('[AI] Mesaj gönderiliyor...')
     const plan = await askAI(username, message)
+    console.log('[AI] Plan alındı:', JSON.stringify(plan))
     for (const step of plan) {
       const fn = actions[step.action]
       if (fn) {
@@ -116,7 +126,7 @@ bot.on('chat', async (username, message) => {
       }
     }
   } catch (err) {
-    console.error(err)
+    console.error('[HATA]', err)
     bot.chat('Bir hata oldu, konsolu kontrol et.')
   }
 })
