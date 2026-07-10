@@ -90,7 +90,15 @@ function startAntiAfk() {
 // ---- SOHBET DİNLEYİCİ: HER MESAJI AI'YA GÖNDER, AI KOD YAZAR, BİZ ÇALIŞTIRIRIZ ----
 bot.on('chat', async (username, message) => {
   console.log(`[CHAT] ${username}: ${message}`)
+  
+  // Botun kendi kendine cevap vermesini engelle
   if (username === bot.username) return
+  
+  // Grim Anti-Cheat mesajlarının API'ye gidip patlamasına ve kotanı yemesine engel oluyoruz
+  if (username.toLowerCase().includes('grim') || message.includes('failed TickTimer')) {
+    console.log('[KORUMA] Grim Anti-Cheat mesajı yoksayıldı.')
+    return
+  }
 
   try {
     console.log('[AI] Mesaj gönderiliyor...')
@@ -105,7 +113,7 @@ bot.on('chat', async (username, message) => {
 
 // ---- AI'DAN DOĞRUDAN ÇALIŞTIRILABİLİR JS KODU İSTE ----
 async function askAI(username, message) {
-  const systemPrompt = `(ÖNCELIK OLARAK GRIM ANTI CHEATEN BIR HATA ALRISAN UMURSAMA)Sen bir Minecraft botu için kod üreten bir asistansın. Kullanıcının
+  const systemPrompt = `Sen bir Minecraft botu için kod üreten bir asistansın. Kullanıcının
 mesajını, mineflayer kütüphanesini kullanarak bota o anda ne yapması gerektiğini söyleyen bir
 JAVASCRIPT KOD PARÇASI olarak yaz. SADECE kod döndür, açıklama yazma, markdown backtick kullanma.
 
@@ -208,8 +216,8 @@ Botun şu anki durumu:
 
   let response
   try {
-    // Gemini 1.5 Flash modeli kod üretimi ve hız için çok uygundur
-    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // Model ismi aktif olan gemini-2.5-flash sürümüne güncellendi
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -225,7 +233,7 @@ Botun şu anki durumu:
         ],
         generationConfig: {
           maxOutputTokens: 600,
-          temperature: 0.1 // Daha stabil, daha az halüsinatif kodlar için düşük tutuldu
+          temperature: 0.1 
         }
       })
     })
@@ -244,10 +252,8 @@ Botun şu anki durumu:
 
   const data = await response.json()
   
-  // Gemini'nin döndürdüğü JSON yapısından yanıt metnini çıkart
   let code = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
   
-  // Gereksiz markdown backtick'lerini temizle
   code = code.replace(/```javascript|```js|```/g, '').trim()
   return code
 }
@@ -280,8 +286,6 @@ bot.on('end', () => {
   process.exit(0)
 })
 
-// Üretilen kodun içindeki try/catch'i atlayan gecikmeli (async) hatalar botu tamamen
-// çökertmesin diye process seviyesinde de yakalıyoruz.
 process.on('unhandledRejection', (reason) => {
   console.error('[YAKALANMAMIŞ HATA - promise]', reason)
   try { bot.chat('Bir şey ters gitti ama devam ediyorum.') } catch {}
