@@ -1,25 +1,48 @@
+// --- ÇOK KRİTİK: 1.21.11 SÜRÜM ENGELİNİ KÖKTEN YOK EDEN MASTER HACK ---
+const mcDataModule = require('minecraft-data');
+const protocol = require('minecraft-protocol');
+
+// 1. minecraft-data kütüphanesinin beynini hackliyoruz
+const hoistedMcData = (version) => {
+    if (version === '1.21.11' || version === '1.21') return mcDataModule('1.21');
+    return mcDataModule(version);
+};
+
+Object.getOwnPropertyNames(mcDataModule).forEach(prop => {
+    try { hoistedMcData[prop] = mcDataModule[prop]; } catch (e) {}
+});
+
+if (hoistedMcData.versions && hoistedMcData.versions.pc) {
+    hoistedMcData.versions.pc['1.21.11'] = hoistedMcData.versions.pc['1.21'];
+}
+
+// Node.js modül önbelleğine sahte veri tabanımızı enjekte ediyoruz
+require.cache[require.resolve('minecraft-data')].exports = hoistedMcData;
+
+// 2. minecraft-protocol kütüphanesinin izin verilenler listesine 1.21.11 ekliyoruz
+if (protocol.supportedVersions && !protocol.supportedVersions.includes('1.21.11')) {
+    protocol.supportedVersions.push('1.21.11');
+}
+
+// 3. Mineflayer'ı yüklüyoruz ve onun da kontrol listesini genişletiyoruz
 const mineflayer = require('mineflayer');
+if (mineflayer.supportedVersions && !mineflayer.supportedVersions.includes('1.21.11')) {
+    mineflayer.supportedVersions.push('1.21.11');
+}
+// ---------------------------------------------------------------------
+
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const { GoogleGenAI, Type } = require('@google/genai');
 
-// --- SÜRÜM KONTROLÜNÜ KÖKTEN DEVRE DIŞI BIRAKMA HACK'İ ---
-const Client = require('minecraft-protocol').Client;
-// Kütüphanenin sunucu sürümünü test edip hata fırlatan fonksiyonunun içini boşaltıyoruz!
-Client.prototype.checkVersion = function() {
-    // Hiçbir şey yapma, hata fırlatma, direkt geçiş izni ver.
-    return true;
-};
-// --------------------------------------------------------
-
-// 1. Yapay Zeka ve Sunucu Ayarları
+// Yapay Zeka ve Sunucu Ayarları
 const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini yapıştır knk
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
-    username: 'YapayZeka_Isci',
-    version: '1.21' // Fiziksel veri tabanı olarak en kararlı 1.21 modülünü kullansın
+    username: 'Kole',
+    version: '1.21.11' // Sunucu ne istiyorsa artık birebir aynısını veriyoruz!
 };
 
 let bot = mineflayer.createBot(botOptions);
@@ -28,7 +51,7 @@ bot.loadPlugin(pathfinder);
 let aktifArkaPlanGorevi = null; 
 
 bot.on('spawn', () => {
-    console.log(`${bot.username} Sürüm Kontrolü Yok Edildi, %100 Yapay Algı Aktif!`);
+    console.log(`${bot.username} Sürüm Duvarı Tamamen Yıkıldı! %100 Yapay Algı Aktif!`);
     const defaultMovements = new Movements(bot, require('minecraft-data')('1.21'));
     bot.pathfinder.setMovements(defaultMovements);
 
@@ -38,7 +61,7 @@ bot.on('spawn', () => {
     }
 });
 
-// 2. Ana Beyin ve Algı Fonksiyonu
+// Ana Beyin ve Algı Fonksiyonu
 async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
     try {
         const sistemTalimati = `
@@ -97,13 +120,13 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
     }
 }
 
-// 3. Chat Dinleyici
+// Chat Dinleyici
 bot.on('chat', async (username, message) => {
     if (username === bot.username) return;
     await beyinIslemcisi(message, username);
 });
 
-// 4. Bağlantı Koruması
+// Bağlantı Koruması
 bot.on('end', () => {
     setTimeout(() => {
         bot = mineflayer.createBot(botOptions);
