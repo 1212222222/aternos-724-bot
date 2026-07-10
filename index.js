@@ -109,61 +109,33 @@ bot.on('chat', async (username, message) => {
 
 // ---- AI'DAN KOD İSTE ----
 async function askAI(username, message) {
-  const systemPrompt = `Sen bir Minecraft botu için kod üreten bir asistansın. Kullanıcının
-mesajını, mineflayer kütüphanesini kullanarak bota o anda ne yapması gerektiğini söyleyen bir
-JAVASCRIPT KOD PARÇASI olarak yaz. SADECE kod döndür, açıklama yazma, markdown backtick kullanma.
+  const modelName = "gemini-2.5-flash"; 
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+  
+  console.log('[DEBUG] İstek atılan URL:', url);
 
-Kodun çalışacağı ortamda şu değişkenler hazır (require etmene gerek yok):
-- bot: mineflayer bot nesnesi 
-- goals: mineflayer-pathfinder goals modülü 
-- Vec3: koordinat/vektör sınıfı
-- username: mesajı yazan oyuncunun adı ("${username}")
+  const systemPrompt = `Sen bir Minecraft botusun. SADECE JavaScript kodu döndür. Açıklama yazma.`;
 
-Kodun async context içinde çalışacak, istersen await kullanabilirsin.
-Hata olursa try/catch ile yakalayıp bot.chat ile kullanıcıya kısaca bildir.
-
-Botun şu anki durumu:
-- Konum: ${JSON.stringify(bot.entity?.position)}
-- Envanter: ${bot.inventory?.items().map(i => i.name).join(', ') || 'boş'}
-- Yakındaki oyuncular: ${Object.keys(bot.players).join(', ')}
-`
-
-  let response
-// index.js içindeki askAI fonksiyonunun içindeki fetch bloğunu bununla değiştir:
-
-  // index.js dosyanı aç ve şu kısmı tam olarak böyle yap:
-response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const response = await fetch(url, {
     method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-        systemInstruction: {
-            parts: [{ text: systemPrompt }]
-        },
-        contents: [
-            {
-                parts: [{ text: `${username}: ${message}` }]
-            }
-        ],
-        generationConfig: {
-            maxOutputTokens: 600,
-            temperature: 0.1 
-        }
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: [{ text: `${username}: ${message}` }] }],
+      generationConfig: { maxOutputTokens: 600, temperature: 0.1 }
     })
-})
-  } catch (networkErr) {
-    console.error('[AI] AĞ HATASI:', networkErr)
-    return "bot.chat('Ağ hatası oldu.')"
-  }
-
-  console.log('[AI] HTTP status:', response.status)
+  });
 
   if (!response.ok) {
-    const errBody = await response.text()
-    console.error('[AI] API HATASI:', response.status, errBody)
-    return "bot.chat('AI hatası oldu, konsola bak.')"
+    const errBody = await response.text();
+    console.error('[API HATASI]', response.status, errBody);
+    return "bot.chat('API Hatası - Konsola bak.')";
   }
+
+  const data = await response.json();
+  let code = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return code.replace(/```javascript|```js|```/g, '').trim();
+}
 
   const data = await response.json()
   
