@@ -1,11 +1,10 @@
 name: mc-ai-bot-runner
 
 on:
-  workflow_dispatch: {}      # elle başlatma
+  workflow_dispatch: {}
   schedule:
-    - cron: '*/30 * * * *'   # her 30 dakikada bir kontrol eder, zaten çalışıyorsa yeni job çakışmaz
+    - cron: '*/30 * * * *'
 
-# Aynı anda birden fazla instance açılmasın diye kilitliyoruz
 concurrency:
   group: mc-ai-bot
   cancel-in-progress: false
@@ -13,7 +12,7 @@ concurrency:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 300   # 5 saat - 6 saatlik GitHub sınırına yaklaşmadan önce yeniden başlar
+    timeout-minutes: 300
     steps:
       - name: Repo'yu çek
         uses: actions/checkout@v4
@@ -25,6 +24,13 @@ jobs:
 
       - name: Bağımlılıkları yükle
         run: npm install
+
+      - name: List Available Models (Hata ayıklama için)
+        env:
+          API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "Kullanılabilir modeller listeleniyor..."
+          curl "https://generativelanguage.googleapis.com/v1beta/models?key=$API_KEY" | grep -o '"name": "models/[^"]*"'
 
       - name: Botu çalıştır
         env:
