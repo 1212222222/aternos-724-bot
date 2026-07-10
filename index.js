@@ -33,7 +33,7 @@ bot.once('spawn', () => {
   console.log('[SPAWN] Bot sunucuya girdi, konum:', bot.entity.position)
   const defaultMove = new Movements(bot)
   defaultMove.canOpenDoors = true
-  defaultMove.canDig = false          // gereksiz yere blok kazıp yol açmasın
+  defaultMove.canDig = true           // engelleri kazarak aşabilsin (noPath sorununu azaltır)
   defaultMove.allowSprinting = true
   defaultMove.allowParkour = true
   defaultMove.maxDropDown = 4
@@ -51,6 +51,11 @@ bot.on('message', (jsonMsg) => {
 // Pathfinder'ın neden takıldığını görmek için debug logları
 bot.on('path_update', (r) => {
   console.log('[PATH] status:', r.status, '| path uzunluğu:', r.path?.length)
+  if (r.status === 'noPath') {
+    console.log('[PATH] Bot konumu:', bot.entity.position)
+    const goal = bot.pathfinder.goal
+    console.log('[PATH] Hedef goal:', JSON.stringify(goal))
+  }
 })
 bot.on('goal_reached', () => {
   console.log('[PATH] Hedefe ulaşıldı.')
@@ -151,6 +156,19 @@ if (target) {
 } else {
   bot.chat('Seni göremiyorum.')
 }
+
+ÖNEMLİ - "BANA GEL" / "BURAYA GEL" KOMUTLARI İÇİN:
+ASLA GoalBlock ile oyuncunun TAM DURDUĞU koordinata gitmeye çalışma — o blok zaten oyuncu
+tarafından işgal edilmiş durumda, bot oraya giremez ve "noPath" hatası alırsın. Bunun yerine
+GoalNear kullan (oyuncunun 1-2 blok yakınına kadar gelmesi yeterli):
+const target = bot.players[username]?.entity
+if (target) {
+  const p = target.position
+  await bot.pathfinder.goto(new goals.GoalNear(p.x, p.y, p.z, 1))
+  bot.chat('Geldim.')
+} else {
+  bot.chat('Seni göremiyorum.')
+}
 Ayrıca bot dar bir koridorda/kapı önünde takılıp zıplamaya devam ediyorsa, bu genelde
 Movements ayarlarıyla ilgilidir, kod tarafında yapılacak bir şey yok, olduğu gibi bırak.
 
@@ -224,4 +242,15 @@ bot.on('error', (err) => {
 bot.on('end', () => {
   console.log('Bağlantı sona erdi.')
   process.exit(0)
+})
+
+// Üretilen kodun içindeki try/catch'i atlayan gecikmeli (async) hatalar botu tamamen
+// çökertmesin diye process seviyesinde de yakalıyoruz.
+process.on('unhandledRejection', (reason) => {
+  console.error('[YAKALANMAMIŞ HATA - promise]', reason)
+  try { bot.chat('Bir şey ters gitti ama devam ediyorum.') } catch {}
+})
+process.on('uncaughtException', (err) => {
+  console.error('[YAKALANMAMIŞ HATA - exception]', err)
+  try { bot.chat('Bir şey ters gitti ama devam ediyorum.') } catch {}
 })
