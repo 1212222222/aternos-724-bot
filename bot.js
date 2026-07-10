@@ -1,91 +1,112 @@
-const mineflayer = require('mineflayer'); // <--- Eksik olan ve hataya sebep olan satır burasıydı!
+const mineflayer = require('mineflayer');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
+const { GoogleGenAI, Type } = require('@google/genai');
 
-// 2. Sunucu Bağlantı Ayarları
+// 1. Yapay Zeka ve Sunucu Ayarları
+const GEMINI_API_KEY = 'BURAYA_API_KEY_YAZ'; // Kendi Gemini API Key'ini yapıştır knk
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
-    username: 'AfkDede_724',              
+    username: 'Akıllı',              
     version: '1.21.11'               
 };
 
 let bot = mineflayer.createBot(botOptions);
+bot.loadPlugin(pathfinder);
 
-const mesajHavuzu = [
-    "beyler madene inen var mı?",
-    "spawnın oradaki tarlayı kim topladı ya da toplamadı?",
-    "biraz odun kasıp geleceğim ben",
-    "envanter acayip doldu, eve gidip sandığa boşaltmam lazım",
-    "fırınlarda pişen demirler kimin? alabilir miyim biraz?",
-    "baya acıktım oyunda, yemeği olan var mı?",
-    "gece oluyor yatsak mı yatak yok mu kimsede?",
-    "şu arkadaki dağa güzel bir ev mi yapsak ne dersiniz?",
-    "creeper patladı ya kıl payı kurtuldum valla",
-    "serverda lag mı var bana mı öyle geliyor?",
-    "tamamdır ben buralardayım takılıyorum öyle"
-];
+// Botun kendi kendine karar verip hafızaya alacağı görev metni
+let aktifArkaPlanGorevi = null; 
 
 bot.on('spawn', () => {
-    console.log(`${bot.username} başarıyla giriş yaptı!`);
-    
-    // Rastgele hareket döngüsü (Her 12 saniyede bir karar verir)
-    setInterval(() => {
-        rastgeleHareketEt();
-    }, 12000);
+    console.log(`${bot.username} %100 Yapay Algı Modülü Aktif!`);
+    const defaultMovements = new Movements(bot, require('minecraft-data')(bot.version));
+    bot.pathfinder.setMovements(defaultMovements);
 
-    // Rastgele sohbet döngüsü (Her 3 ila 6 dakika arasında)
-    function sohbetDongusu() {
-        const rastgeleSure = Math.floor(Math.random() * (360000 - 180000 + 1)) + 180000;
-        setTimeout(() => {
-            if (bot && bot.entity) {
-                const rastgeleMesaj = mesajHavuzu[Math.floor(Math.random() * mesajHavuzu.length)];
-                bot.chat(rastgeleMesaj);
-                console.log(`Bot Chat Mesajı Gönderdi: ${rastgeleMesaj}`);
-            }
-            sohbetDongusu();
-        }, rastgeleSure);
+    // Sunucudan düşüp geri girdiyse ve hafızasındaki iş uzun vadeliyse devam etsin
+    if (aktifArkaPlanGorevi) {
+        console.log("Hafızadaki arka plan görevi sürdürülüyor...");
+        beyinIslemcisi(aktifArkaPlanGorevi, "Sistem");
     }
-    
-    sohbetDongusu();
 });
 
-// Aternos'u yanıltan hareket fonksiyonu
-function rastgeleHareketEt() {
-    if (!bot.entity) return;
+// 2. Ana Beyin ve Algı Fonksiyonu
+async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
+    try {
+        const sistemTalimati = `
+        Sen bağımsız ve çok zeki bir Minecraft yapay zeka botusun. Oyuncunun attığı mesajı analiz et ve iki görevi yerine getir:
+        
+        1. Oyuncunun ne istediğini anla ve bunu Mineflayer kütüphanesini kullanarak yapacak saf bir JavaScript kodu yaz. 
+           - 'bot', 'mineflayer', 'pathfinder', 'Movements', 'goals' değişkenleri sana açıktır.
+           - Kodun en başına mutlaka 'bot.chat("...")' ile oyuncuya ne yapacağını bildiren bir mesaj ekle.
+           
+        2. Cümlenin anlamını tart. Eğer oyuncu oyundan ayrılacağını, çıkacağını, gideceğini ima ediyor ve arkasından uzun süreli bir iş (maden kazmak, tarlaya bakmak, nöbet tutmak vb.) bırakıyorsa bunu tespit et.
+        
+        Kurallar:
+        - Çıktıyı kesinlikle sana verilen JSON şemasına uygun olarak döndür.
+        - Kod alanında asla markdown (\`\`\`) kullanma, sadece ham kod metni olsun.
+        `;
 
-    const eylemSecimi = Math.floor(Math.random() * 5);
-    const rastgeleSure = Math.floor(Math.random() * 2000) + 1000;
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: oyuncuMesaji,
+            config: {
+                systemInstruction: sistemTalimati,
+                temperature: 0.1, // Hata yapmaması için çok kararlı çalıştırıyoruz
+                // Gemini'ın bize vereceği cevabın kalıbını zorunlu kılıyoruz:
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        javascriptKodu: {
+                            type: Type.STRING,
+                            description: 'Görevi gerçekleştirecek saf, çalıştırılabilir JavaScript kodu.'
+                        },
+                        uzunVadeliGorevMi: {
+                            type: Type.BOOLEAN,
+                            description: 'Oyuncu cümlesinde çıkacağını, gideceğini belirtip arkasından kalıcı bir iş bırakıyorsa true, anlık bir emir veya normal sohbetyse false yap.'
+                        }
+                    },
+                    required: ['javascriptKodu', 'uzunVadeliGorevMi']
+                }
+            }
+        });
 
-    switch (eylemSecimi) {
-        case 0:
-            bot.setControlState('forward', true);
-            setTimeout(() => bot.setControlState('forward', false), rastgeleSure);
-            break;
-        case 1:
-            bot.setControlState('back', true);
-            setTimeout(() => bot.setControlState('back', false), rastgeleSure);
-            break;
-        case 2:
-            bot.setControlState('jump', true);
-            setTimeout(() => bot.setControlState('jump', false), 500);
-            break;
-        case 3:
-            const yaw = (Math.random() * Math.PI * 2) - Math.PI;
-            const pitch = (Math.random() * Math.PI / 2) - (Math.PI / 4);
-            bot.look(yaw, pitch, true);
-            break;
-        case 4:
-            bot.setControlState('left', true);
-            setTimeout(() => bot.setControlState('left', false), rastgeleSure);
-            break;
+        // Gemini'dan gelen kesin yanıtı JSON olarak ayrıştırıyoruz
+        const analizSonucu = JSON.parse(response.text.trim());
+
+        console.log("--- GEMINI ALGI VE KARAR ÇIKTISI ---");
+        console.log(`Uzun Vadeli Görev mi?: ${analizSonucu.uzunVadeliGorevMi}`);
+        console.log(`Üretilen Kod:\n${analizSonucu.javascriptKodu}`);
+        console.log("------------------------------------");
+
+        // Eğer Gemini bunun bir arkadan iş bırakıp ayrılma durumu olduğunu onayladıysa hafızaya al
+        if (analizSonucu.uzunVadeliGorevMi === true) {
+            aktifArkaPlanGorevi = oyuncuMesaji;
+        }
+
+        // Kodu canlı olarak bota enjekte et ve çalıştır
+        eval(analizSonucu.javascriptKodu);
+
+    } catch (error) {
+        console.error('Beyin İşlemcisi Hatası:', error);
     }
 }
 
-// Bağlantı koparsa otomatik olarak 10 saniye sonra tekrar bağlanır
-bot.on('end', () => {
-    console.log('Bağlantı kesildi. Tekrar bağlanılıyor...');
-    setTimeout(() => {
-        bot = mineflayer.createBot(botOptions);
-    }, 10000);
+// 3. Chat Dinleyici (Sıfır Filtre, Direkt Beyne Sevk)
+bot.on('chat', async (username, message) => {
+    if (username === bot.username) return;
+
+    // Gelen mesajda ne yazdığına bakmaksızın direkt Gemini'ın yorumlamasına gönderiyoruz
+    await beyinIslemcisi(message, username);
 });
 
-bot.on('error', (err) => console.log('Hata:', err));
+// 4. Bağlantı Koruması
+bot.on('end', () => {
+    setTimeout(() => {
+        bot = mineflayer.createBot(botOptions);
+        bot.loadPlugin(pathfinder);
+    }, 10000);
+});
+bot.on('error', (err) => console.log('Sistem Hatası:', err));
