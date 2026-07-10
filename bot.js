@@ -2,28 +2,23 @@ const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const { GoogleGenAI, Type } = require('@google/genai');
 
-// --- SÜRÜM KONTROLÜNÜ KÖKTEN ÇÖKERTEN HACK (1.21.11) ---
-const mcData = require('minecraft-data')('1.21');
-const supportedVersions = require('minecraft-data').versions;
-
-// Kütüphanenin beynine 1.21.11 protokolünü 1.21 ile eşleştirerek enjekte ediyoruz
-if (supportedVersions && !supportedVersions.pc['1.21.11']) {
-    const copyVersion = { ...supportedVersions.pc['1.21'] };
-    copyVersion.version = '1.21.11';
-    supportedVersions.pc['1.21.11'] = copyVersion;
-    supportedVersions.list.push(copyVersion);
+// --- HATA VERMEYEN YENİ SÜRÜM HACK'İ (1.21.11) ---
+const protocol = require('minecraft-protocol');
+// Sürümlerin tutulduğu objeye 1.21.11'i, 1.21 sürümüyle birebir aynı olacak şekilde ekliyoruz
+if (protocol.supportedVersions) {
+    protocol.supportedVersions.push('1.21.11');
 }
 // ------------------------------------------------------
 
 // 1. Yapay Zeka ve Sunucu Ayarları
-const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini buraya yapıştır knk
+const GEMINI_API_KEY = 'BURAYA_API_KEY_YAZ'; // Kendi Gemini API Key'ini buraya yapıştır knk
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
     username: 'YapayZeka_Isci',
-    version: '1.21.11' // Artık sunucuya meydan okuyarak tam sürümü yazabiliyoruz!
+    version: '1.21' // Mineflayer arkada 1.21 datasını kullansın ama protokolü 1.21.11 olarak görsün
 };
 
 let bot = mineflayer.createBot(botOptions);
@@ -33,7 +28,7 @@ let aktifArkaPlanGorevi = null;
 
 bot.on('spawn', () => {
     console.log(`${bot.username} Sürüm Engeli Tamamen Parçalandı, %100 Yapay Algı Aktif!`);
-    const defaultMovements = new Movements(bot, mcData);
+    const defaultMovements = new Movements(bot, require('minecraft-data')('1.21'));
     bot.pathfinder.setMovements(defaultMovements);
 
     if (aktifArkaPlanGorevi) {
