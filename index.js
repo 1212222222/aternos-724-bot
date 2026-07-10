@@ -154,29 +154,45 @@ Botun şu anki durumu:
 - Yakındaki oyuncular: ${Object.keys(bot.players).join(', ')}
 `
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 500,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: `${username}: ${message}` }]
+  let response
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `${username}: ${message}` }]
+      })
     })
-  })
+  } catch (networkErr) {
+    console.error('[AI] AĞ HATASI (isteği gönderemedi):', networkErr)
+    return []
+  }
+
+  console.log('[AI] HTTP status:', response.status)
+
+  if (!response.ok) {
+    const errBody = await response.text()
+    console.error('[AI] API HATASI:', response.status, errBody)
+    return []
+  }
 
   const data = await response.json()
+  console.log('[AI] Ham cevap:', JSON.stringify(data).slice(0, 500))
+
   const text = data.content?.map(c => c.text || '').join('') || '[]'
   const cleaned = text.replace(/```json|```/g, '').trim()
 
   try {
     return JSON.parse(cleaned)
   } catch {
-    console.error('AI JSON parse edilemedi:', text)
+    console.error('[AI] JSON parse edilemedi:', text)
     return []
   }
 }
