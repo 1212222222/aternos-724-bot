@@ -51,7 +51,7 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
         `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-latest',
             contents: oyuncuMesaji,
             config: {
                 systemInstruction: sistemTalimati,
