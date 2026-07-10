@@ -128,6 +128,20 @@ try {
   bot.chat('Yatamadım: ' + e.message)
 }
 
+ÖNEMLİ - TAKİP ETME (follow) KOMUTLARI İÇİN:
+"beni takip et" gibi isteklerde ASLA GoalFollow'u çok küçük mesafeyle kullanma, bot hedefe
+yapışıp ileri-geri salınır (titreme/patinaj yapar). Doğru kullanım:
+const target = bot.players[username]?.entity
+if (target) {
+  const goal = new goals.GoalFollow(target, 2) // minimum 2 blok mesafe, daha az VERME
+  bot.pathfinder.setGoal(goal, true) // true = dinamik, hedef hareket ettikçe günceller
+  bot.chat('Seni takip ediyorum.')
+} else {
+  bot.chat('Seni göremiyorum.')
+}
+Ayrıca bot dar bir koridorda/kapı önünde takılıp zıplamaya devam ediyorsa, bu genelde
+Movements ayarlarıyla ilgilidir, kod tarafında yapılacak bir şey yok, olduğu gibi bırak.
+
 Botun şu anki durumu:
 - Konum: ${JSON.stringify(bot.entity?.position)}
 - Envanter: ${bot.inventory?.items().map(i => i.name).join(', ') || 'boş'}
