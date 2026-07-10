@@ -1,10 +1,9 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const { GoalFollow } = goals;
 const { GoogleGenAI, Type } = require('@google/genai');
 
 // 1. Yapay Zeka ve Sunucu Ayarları
-const GEMINI_API_KEY = 'AQ.Ab8RN6JqZF3JPiCGKtgbq20YtD-Fj6CBa3skvPLrNAKSSTAS3g'; // API Key'ini buraya koy knk
+const GEMINI_API_KEY = 'AQ.Ab8RN6JqZF3JPiCGKtgbq20YtD-Fj6CBa3skvPLrNAKSSTAS3g'; // Geçerli API Key'ini buraya koy knk
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const botOptions = {
@@ -22,12 +21,10 @@ let aktifArkaPlanGorevi = null;
 bot.on('spawn', () => {
     console.log(`${bot.username} başarıyla sunucuya giriş yaptı!`);
     
-    // HAREKET MOTORUNU RESETLE VE GÜÇLENDİR
     const mcData = require('minecraft-data')(bot.version);
     const defaultMovements = new Movements(bot, mcData);
     
-    // Botun bloklara takılmasını engellemek için kapıları ve pencereleri açabileceğini söyleyelim
-    defaultMovements.canDig = false; // Duvarları kırarak gelmeye çalışmasın
+    defaultMovements.canDig = false; 
     bot.pathfinder.setMovements(defaultMovements);
 
     if (aktifArkaPlanGorevi) {
@@ -35,32 +32,26 @@ bot.on('spawn', () => {
     }
 });
 
-// 2. Hızlandırılmış Beyin İşlemcisi
+// 2. Tamamen Özgür ve Kilitlenmeyen Beyin İşlemcisi
 async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
     try {
-        // Eğer oyuncu direkt "takip et" veya "gel" dediyse yapay zekayı hiç bekletmeden ANINDA hareket ettiriyoruz
-        const mesajKucuk = oyuncuMesaji.toLowerCase();
-        if (mesajKucuk.includes('takip et') || mesajKucuk.includes('gel') || mesajKucuk.includes('yanıma gel')) {
-            const player = bot.players[gonderenOyuncu];
-            if (player && player.entity) {
-                bot.chat("Hemen geliyorum knk!");
-                bot.pathfinder.setGoal(new GoalFollow(player.entity, 1), true);
-                return;
-            } else {
-                bot.chat("Seni göremiyorum, çok uzakta mısın?");
-                return;
-            }
-        }
-
-        // Diğer karmaşık komutlar için yapay zekayı hafifletilmiş kurallarla çağırıyoruz
         const sistemTalimati = `
-        Sen bir Minecraft botusun. Oyuncunun attığı mesaja göre Mineflayer kodu yaz.
-        Sadece 'bot', 'pathfinder', 'Movements', 'goals' kullanabilirsin.
-        JSON olarak çıktı ver:
-        {
-          "javascriptKodu": "kod buraya (markdown kullanma)",
-          "uzunVadeliGorevMi": true/false
-        }
+        Sen bağımsız ve çok zeki bir Minecraft yapay zeka botusun. Sana gelen mesajı analiz et ve sadece Mineflayer kütüphanesini kullanarak gerçekleştirilecek saf bir JavaScript kodu yaz.
+        
+        Kullanabileceğin global değişkenler ve kütüphaneler:
+        - 'bot': Mineflayer bot nesnesi
+        - 'pathfinder': Botun pathfinder eklentisi
+        - 'Movements': Yeni hareket kuralları oluşturmak için (require('mineflayer-pathfinder').Movements)
+        - 'goals': Hedef tanımlamaları için (require('mineflayer-pathfinder').goals)
+        
+        Örnek Hedef Belirleme Kuralları:
+        - Oyuncuyu takip etmek için: const { GoalFollow } = goals; const target = bot.players['${gonderenOyuncu}']?.entity; if (target) { bot.pathfinder.setGoal(new GoalFollow(target, 1), true); } else { bot.chat("Seni fiziksel olarak dünyada göremiyorum knk, biraz yakınıma gel."); }
+        - Durmak için: bot.pathfinder.setGoal(null);
+        
+        Kurallar:
+        - Kodun en başına mutlaka 'bot.chat("...")' ile oyuncuya ne yapacağını bildiren Türkçe bir mesaj ekle.
+        - Çıktıyı kesinlikle sana verilen JSON şemasına uygun olarak döndür.
+        - Kod alanında asla markdown (\`\`\`) kullanma, sadece ham kod metni olsun.
         `;
 
         const response = await ai.models.generateContent({
@@ -73,8 +64,14 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        javascriptKodu: { type: Type.STRING },
-                        uzunVadeliGorevMi: { type: Type.BOOLEAN }
+                        javascriptKodu: {
+                            type: Type.STRING,
+                            description: 'Görevi gerçekleştirecek saf, çalıştırılabilir JavaScript kodu.'
+                        },
+                        uzunVadeliGorevMi: {
+                            type: Type.BOOLEAN,
+                            description: 'Oyuncu cümlesinde kalıcı bir iş bırakıyorsa true, anlık bir emir veya normal sohbetyse false yap.'
+                        }
                     },
                     required: ['javascriptKodu', 'uzunVadeliGorevMi']
                 }
@@ -82,6 +79,10 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
         });
 
         const analizSonucu = JSON.parse(response.text.trim());
+
+        console.log("--- GEMINI KOD ÇIKTISI ---");
+        console.log(`Üretilen Kod:\n${analizSonucu.javascriptKodu}`);
+        console.log("--------------------------");
 
         if (analizSonucu.javascriptKodu.includes('process') || analizSonucu.javascriptKodu.includes('require')) {
             return;
@@ -91,10 +92,12 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
             aktifArkaPlanGorevi = oyuncuMesaji;
         }
 
+        // Üretilen kod buradaki hata havuzunda çalıştırılır, botu dilsiz bırakmaz!
         eval(analizSonucu.javascriptKodu);
 
     } catch (error) {
-        console.error('Beyin Hatası:', error);
+        console.error('Beyin İşlemcisi Hatası:', error);
+        bot.chat("Mesajını tam anlayamadım ya da bir hata oluştu knk.");
     }
 }
 
