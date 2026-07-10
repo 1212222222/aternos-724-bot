@@ -1,7 +1,7 @@
 /**
- * AI destekli Minecraft botu
+ * AI destekli Minecraft botu (Gemini API Entegrasyonu)
  * - Sohbetten gelen HER doğal dil komutunu anlar (hazır/sabit komut listesi YOK)
- * - Groq API'ye "bu isteği karşılayan JS kodunu yaz" diye sorar
+ * - Gemini API'ye "bu isteği karşılayan JS kodunu yaz" diye sorar
  * - AI'nin ürettiği kodu doğrudan bot üzerinde çalıştırır (mineflayer'ın tüm API'sine erişimi var)
  */
 
@@ -13,10 +13,10 @@ const { Vec3 } = require('vec3')
 const HOST = process.env.MC_HOST || 'localhost'
 const PORT = parseInt(process.env.MC_PORT || '25565')
 const USERNAME = process.env.MC_USERNAME || 'AIBot'
-const GROQ_API_KEY = process.env.GROQ_API_KEY
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
-if (!GROQ_API_KEY) {
-  console.error('HATA: GROQ_API_KEY ortam değişkeni ayarlı değil.')
+if (!GEMINI_API_KEY) {
+  console.error('HATA: GEMINI_API_KEY ortam değişkeni ayarlı değil.')
   process.exit(1)
 }
 
@@ -33,13 +33,13 @@ bot.once('spawn', () => {
   console.log('[SPAWN] Bot sunucuya girdi, konum:', bot.entity.position)
   const defaultMove = new Movements(bot)
   defaultMove.canOpenDoors = true
-  defaultMove.canDig = true           // engelleri kazarak aşabilsin (noPath sorununu azaltır)
+  defaultMove.canDig = true            // engelleri kazarak aşabilsin (noPath sorununu azaltır)
   defaultMove.allowSprinting = true
   defaultMove.allowParkour = true
   defaultMove.maxDropDown = 4
   // TEHLİKELİ BÖLGELERDEN KAÇIN: lav, ateş gibi bloklara yakın yoldan gitme, oralara çok
   // yüksek "maliyet" ver ki pathfinder mümkün olduğunca uzak dursun
-  defaultMove.liquidCost = 20         // suya/lava girmeyi pahalı yap (varsayılan 1)
+  defaultMove.liquidCost = 20          // suya/lava girmeyi pahalı yap (varsayılan 1)
   defaultMove.canWalkOnLava = false
   if (bot.registry) {
     const dangerBlocks = ['lava', 'fire', 'cactus', 'magma_block', 'campfire', 'soul_fire', 'soul_campfire']
@@ -173,7 +173,7 @@ Baktığın bloğu bulmak için ASLA yaw/pitch'ten manuel yön hesaplama yapma (
 Bunun yerine mineflayer'ın hazır fonksiyonunu kullan:
 const target = bot.blockAtCursor(5) // crosshair'ın baktığı yere en fazla 5 blok bakar
 if (target) {
-  await bot.dig(target)           // kırmak için
+  await bot.dig(target)            // kırmak için
   // veya: await bot.lookAt(target.position); await bot.activateBlock(target) // sağ tık için
   bot.chat('Yaptım.')
 } else {
@@ -208,19 +208,25 @@ Botun şu anki durumu:
 
   let response
   try {
-    response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // Gemini 1.5 Flash modeli kod üretimi ve hız için çok uygundur
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 600,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `${username}: ${message}` }
-        ]
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        contents: [
+          {
+            parts: [{ text: `${username}: ${message}` }]
+          }
+        ],
+        generationConfig: {
+          maxOutputTokens: 600,
+          temperature: 0.1 // Daha stabil, daha az halüsinatif kodlar için düşük tutuldu
+        }
       })
     })
   } catch (networkErr) {
@@ -237,9 +243,11 @@ Botun şu anki durumu:
   }
 
   const data = await response.json()
-  console.log('[AI] Ham cevap:', JSON.stringify(data).slice(0, 500))
-
-  let code = data.choices?.[0]?.message?.content || ''
+  
+  // Gemini'nin döndürdüğü JSON yapısından yanıt metnini çıkart
+  let code = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  
+  // Gereksiz markdown backtick'lerini temizle
   code = code.replace(/```javascript|```js|```/g, '').trim()
   return code
 }
