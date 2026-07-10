@@ -2,6 +2,19 @@ const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const { GoogleGenAI, Type } = require('@google/genai');
 
+// --- SÜRÜM KONTROLÜNÜ KÖKTEN ÇÖKERTEN HACK (1.21.11) ---
+const mcData = require('minecraft-data')('1.21');
+const supportedVersions = require('minecraft-data').versions;
+
+// Kütüphanenin beynine 1.21.11 protokolünü 1.21 ile eşleştirerek enjekte ediyoruz
+if (supportedVersions && !supportedVersions.pc['1.21.11']) {
+    const copyVersion = { ...supportedVersions.pc['1.21'] };
+    copyVersion.version = '1.21.11';
+    supportedVersions.pc['1.21.11'] = copyVersion;
+    supportedVersions.list.push(copyVersion);
+}
+// ------------------------------------------------------
+
 // 1. Yapay Zeka ve Sunucu Ayarları
 const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini buraya yapıştır knk
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
@@ -10,30 +23,17 @@ const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
     username: 'YapayZeka_Isci',
-    version: '1.21' // Mineflayer'ın tanıdığı ana sürüm kökünü veriyoruz
+    version: '1.21.11' // Artık sunucuya meydan okuyarak tam sürümü yazabiliyoruz!
 };
 
-// --- KRİTİK SÜRÜM DUVARI AŞMA HACK'İ ---
-// Sunucu ne döndürürse döndürsün (1.21.11 dahil), bota zorla 1.21 protokolünü dayatıyoruz
-const mcData = require('minecraft-data')(botOptions.version);
-if (mcData) {
-    botOptions.protocolVersion = mcData.version.protocol;
-}
-
 let bot = mineflayer.createBot(botOptions);
-
-// Sunucudan gelen o hatalı 1.21.11 ping yanıtını filtreleyip bota enjekte ediyoruz
-bot._client.on('connect', () => {
-    bot._client.version = botOptions.version;
-});
-
 bot.loadPlugin(pathfinder);
 
 let aktifArkaPlanGorevi = null; 
 
 bot.on('spawn', () => {
-    console.log(`${bot.username} Sürüm Engeli Aşıldı, %100 Yapay Algı Aktif!`);
-    const defaultMovements = new Movements(bot, require('minecraft-data')(bot.version));
+    console.log(`${bot.username} Sürüm Engeli Tamamen Parçalandı, %100 Yapay Algı Aktif!`);
+    const defaultMovements = new Movements(bot, mcData);
     bot.pathfinder.setMovements(defaultMovements);
 
     if (aktifArkaPlanGorevi) {
@@ -111,9 +111,6 @@ bot.on('chat', async (username, message) => {
 bot.on('end', () => {
     setTimeout(() => {
         bot = mineflayer.createBot(botOptions);
-        bot._client.on('connect', () => {
-            bot._client.version = botOptions.version;
-        });
         bot.loadPlugin(pathfinder);
     }, 10000);
 });
