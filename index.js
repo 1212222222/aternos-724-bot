@@ -48,10 +48,21 @@ bot.on('message', (jsonMsg) => {
   console.log('[RAW MESSAGE]', jsonMsg.toString())
 })
 
+// Pathfinder'ın neden takıldığını görmek için debug logları
+bot.on('path_update', (r) => {
+  console.log('[PATH] status:', r.status, '| path uzunluğu:', r.path?.length)
+})
+bot.on('goal_reached', () => {
+  console.log('[PATH] Hedefe ulaşıldı.')
+})
+
 // ---- ANTİ-AFK: Aternos hareketsiz oyuncuyu atabiliyor, bunu engelle ----
 function startAntiAfk() {
   setInterval(() => {
     if (!bot.entity) return
+    // Bot aktif bir hedefe gidiyorsa (takip, gitme vb.) anti-afk'nın araya girip
+    // ekstra titremeye sebep olmasını engelle
+    if (bot.pathfinder.goal) return
     if (!bot.pathfinder.isMoving()) {
       bot.setControlState('jump', true)
       setTimeout(() => bot.setControlState('jump', false), 300)
@@ -130,10 +141,11 @@ try {
 
 ÖNEMLİ - TAKİP ETME (follow) KOMUTLARI İÇİN:
 "beni takip et" gibi isteklerde ASLA GoalFollow'u çok küçük mesafeyle kullanma, bot hedefe
-yapışıp ileri-geri salınır (titreme/patinaj yapar). Doğru kullanım:
+yapışıp ileri-geri salınır (titreme/patinaj yapar). Mesafe olarak EN AZ 3 kullan (2 veya altı
+titremeye sebep olur). Doğru kullanım:
 const target = bot.players[username]?.entity
 if (target) {
-  const goal = new goals.GoalFollow(target, 2) // minimum 2 blok mesafe, daha az VERME
+  const goal = new goals.GoalFollow(target, 3) // minimum 3 blok mesafe, daha az VERME
   bot.pathfinder.setGoal(goal, true) // true = dinamik, hedef hareket ettikçe günceller
   bot.chat('Seni takip ediyorum.')
 } else {
