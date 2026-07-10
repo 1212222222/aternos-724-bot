@@ -1,9 +1,9 @@
-const mineflayer = require('mineflayer');
-
+// 2. Sunucu Bağlantı Ayarları
 const botOptions = {
-    host: 'Verity-PGWq.aternos.me', // Senin sunucu IP'n [cite: 1]
+    host: 'Verity-PGWq.aternos.me', // Senin sunucu IP'n[cite: 1]
     port: 25565,                         
-    username: 'AfkDede_724'              
+    username: 'AfkDede_724',              
+    version: '1.21.11'               // <--- BU SATIRI EKLEDİK (Sürümü sabitledik)
 };
 
 let bot = mineflayer.createBot(botOptions);
