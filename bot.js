@@ -9,10 +9,11 @@ const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
-    username: 'Kole',              
-    version: '1.21.11'               
+    username: 'YapayZeka_Isci',
+    // Sürüm kontrolünü tamamen devre dışı bırakıp bota zorla bu protokolü kullandırıyoruz
+    version: false,
+    protocolVersion: 767 // 1.21 / 1.21.1 için kullanılan net ağ protokol numarası
 };
-
 let bot = mineflayer.createBot(botOptions);
 bot.loadPlugin(pathfinder);
 
