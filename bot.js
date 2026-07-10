@@ -1,61 +1,16 @@
-// =====================================================================
-// 🔥 MUTEŞEM MAFYA HACK: SÜRÜM KONTROL MEKANİZMASINI HAFIZADAN SİLME 🔥
-// =====================================================================
-try {
-    const protocolCheckPath = require.resolve('minecraft-protocol/src/client/versionChecking.js');
-    require.cache[protocolCheckPath] = {
-        id: protocolCheckPath,
-        filename: protocolCheckPath,
-        loaded: true,
-        exports: function(client, options) {
-            // Sürüm kontrol fonksiyonunu tamamen felç ettik. Artık hata MATA fırlatamaz!
-            return true;
-        }
-    };
-    console.log("-> Sürüm kontrol filtresi hafızadan tamamen silindi.");
-} catch (e) {
-    console.log("-> Filtre silme adımı atlandı.");
-}
-
-// Kütüphanelerin listelerine 1.21.11 aşısını yapıyoruz
 const mineflayer = require('mineflayer');
-const protocol = require('minecraft-protocol');
-const mcDataModule = require('minecraft-data');
-
-if (mineflayer.supportedVersions && !mineflayer.supportedVersions.includes('1.21.11')) {
-    mineflayer.supportedVersions.push('1.21.11');
-}
-if (protocol.supportedVersions && !protocol.supportedVersions.includes('1.21.11')) {
-    protocol.supportedVersions.push('1.21.11');
-}
-
-// minecraft-data kütüphanesine sahte 1.21.11 verisi enjekte ediyoruz
-const orijinalMcData = require('minecraft-data');
-const sahteMcData = (version) => {
-    if (version === '1.21.11') return orijinalMcData('1.21');
-    return orijinalMcData(version);
-};
-Object.getOwnPropertyNames(orijinalMcData).forEach(prop => {
-    try { sahteMcData[prop] = orijinalMcData[prop]; } catch (e) {}
-});
-if (sahteMcData.versions && sahteMcData.versions.pc) {
-    sahteMcData.versions.pc['1.21.11'] = sahteMcData.versions.pc['1.21'];
-}
-require.cache[require.resolve('minecraft-data')].exports = sahteMcData;
-// =====================================================================
-
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const { GoogleGenAI, Type } = require('@google/genai');
 
 // 1. Yapay Zeka ve Sunucu Ayarları
-const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini buraya yapıştır knk
+const GEMINI_API_KEY = 'AQ.Ab8RN6KJsdkXP223zsRfPoxUAYY3aDMiro3MMryxxeUVg1Czmw'; // Kendi Gemini API Key'ini buraya yapıştır
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const botOptions = {
     host: 'Verity-PGWq.aternos.me', 
     port: 25565,                         
     username: 'Kole',
-    version: '1.21.11' // Artık sunucunun kendi sürümünü korkusuzca yazabiliyoruz!
+    version: false // 🔥 EN GÜVENLİSİ: Sunucuya ping atıp sürümü (1.21.11) otomatik eşlesin!
 };
 
 let bot = mineflayer.createBot(botOptions);
@@ -64,8 +19,11 @@ bot.loadPlugin(pathfinder);
 let aktifArkaPlanGorevi = null; 
 
 bot.on('spawn', () => {
-    console.log(`${bot.username} Sürüm Engeli Tamamen Parçalandı, %100 Yapay Algı Aktif!`);
-    const defaultMovements = new Movements(bot, require('minecraft-data')('1.21'));
+    console.log(`${bot.username} başarıyla sunucuya giriş yaptı! %100 Yapay Algı Aktif!`);
+    
+    // Sunucunun otomatik algılanan sürümüne göre veriyi yükle
+    const mcData = require('minecraft-data')(bot.version);
+    const defaultMovements = new Movements(bot, mcData);
     bot.pathfinder.setMovements(defaultMovements);
 
     if (aktifArkaPlanGorevi) {
@@ -89,6 +47,7 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
         Kurallar:
         - Çıktıyı kesinlikle sana verilen JSON şemasına uygun olarak döndür.
         - Kod alanında asla markdown (\`\`\`) kullanma, sadece ham kod metni olsun.
+        - Güvenlik için sadece bot eylemleri içeren kodlar yaz, 'process.exit' veya 'require' gibi sistem komutları yazma.
         `;
 
         const response = await ai.models.generateContent({
@@ -121,6 +80,12 @@ async function beyinIslemcisi(oyuncuMesaji, gonderenOyuncu) {
         console.log(`Uzun Vadeli Görev mi?: ${analizSonucu.uzunVadeliGorevMi}`);
         console.log(`Üretilen Kod:\n${analizSonucu.javascriptKodu}`);
         console.log("------------------------------------");
+
+        // 🔥 GÜVENLİK FİLTRESİ: Birisi chate troll/zararlı kod inject etmeye çalışırsa engelle
+        if (analizSonucu.javascriptKodu.includes('process') || analizSonucu.javascriptKodu.includes('require')) {
+            console.log("⚠️ Tehdit oluşturabilecek kod engellendi!");
+            return;
+        }
 
         if (analizSonucu.uzunVadeliGorevMi === true) {
             aktifArkaPlanGorevi = oyuncuMesaji;
