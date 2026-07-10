@@ -28,7 +28,7 @@ jobs:
 
       - name: Botu çalıştır
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MC_HOST: ${{ secrets.MC_HOST }}
           MC_PORT: ${{ secrets.MC_PORT }}
           MC_USERNAME: ${{ secrets.MC_USERNAME }}
