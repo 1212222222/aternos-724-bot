@@ -37,6 +37,17 @@ bot.once('spawn', () => {
   defaultMove.allowSprinting = true
   defaultMove.allowParkour = true
   defaultMove.maxDropDown = 4
+  // TEHLİKELİ BÖLGELERDEN KAÇIN: lav, ateş gibi bloklara yakın yoldan gitme, oralara çok
+  // yüksek "maliyet" ver ki pathfinder mümkün olduğunca uzak dursun
+  defaultMove.liquidCost = 20         // suya/lava girmeyi pahalı yap (varsayılan 1)
+  defaultMove.canWalkOnLava = false
+  if (bot.registry) {
+    const dangerBlocks = ['lava', 'fire', 'cactus', 'magma_block', 'campfire', 'soul_fire', 'soul_campfire']
+    for (const name of dangerBlocks) {
+      const b = bot.registry.blocksByName[name]
+      if (b) defaultMove.blocksToAvoid.add(b.id)
+    }
+  }
   bot.pathfinder.setMovements(defaultMove)
   bot.pathfinder.thinkTimeout = 5000  // yol hesaplaması için daha fazla süre, takılıp titremesin
   bot.chat('Merhaba! Bana istediğin şeyi yaz, ne olursa olsun yapmaya çalışacağım.')
@@ -156,6 +167,23 @@ if (target) {
 } else {
   bot.chat('Seni göremiyorum.')
 }
+
+ÖNEMLİ - "BAKTIĞIN/ÖNÜNDEKİ BLOĞA SAĞ TIKLA/KIR" KOMUTLARI İÇİN:
+Baktığın bloğu bulmak için ASLA yaw/pitch'ten manuel yön hesaplama yapma (hep hatalı çıkıyor).
+Bunun yerine mineflayer'ın hazır fonksiyonunu kullan:
+const target = bot.blockAtCursor(5) // crosshair'ın baktığı yere en fazla 5 blok bakar
+if (target) {
+  await bot.dig(target)           // kırmak için
+  // veya: await bot.lookAt(target.position); await bot.activateBlock(target) // sağ tık için
+  bot.chat('Yaptım.')
+} else {
+  bot.chat('Baktığım yerde blok yok.')
+}
+
+ÖNEMLİ - GENEL KURAL:
+İstediğin şeyi TAM ve EKSİKSİZ bir kod olarak yaz, "//TODO", "burada devam edilecek" gibi
+yarım bırakma. Kod tek seferde çalışıp bitmeli. Bir hata oluşursa try/catch ile yakala ve
+bot.chat ile kısaca bildir, ama asla boş/yarım kod döndürme.
 
 ÖNEMLİ - "BANA GEL" / "BURAYA GEL" KOMUTLARI İÇİN:
 ASLA GoalBlock ile oyuncunun TAM DURDUĞU koordinata gitmeye çalışma — o blok zaten oyuncu
