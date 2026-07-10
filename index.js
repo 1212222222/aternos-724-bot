@@ -12,10 +12,10 @@ const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
 const HOST = process.env.MC_HOST || 'localhost'
 const PORT = parseInt(process.env.MC_PORT || '25565')
 const USERNAME = process.env.MC_USERNAME || 'AIBot'
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY // .env veya ortam değişkeninden
+const GROQ_API_KEY = process.env.GROQ_API_KEY // .env veya ortam değişkeninden
 
-if (!ANTHROPIC_API_KEY) {
-  console.error('HATA: ANTHROPIC_API_KEY ortam değişkeni ayarlı değil.')
+if (!GROQ_API_KEY) {
+  console.error('HATA: GROQ_API_KEY ortam değişkeni ayarlı değil.')
   process.exit(1)
 }
 
@@ -156,18 +156,19 @@ Botun şu anki durumu:
 
   let response
   try {
-    response = await fetch('https://api.anthropic.com/v1/messages', {
+    response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 500,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: `${username}: ${message}` }]
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `${username}: ${message}` }
+        ]
       })
     })
   } catch (networkErr) {
@@ -186,7 +187,7 @@ Botun şu anki durumu:
   const data = await response.json()
   console.log('[AI] Ham cevap:', JSON.stringify(data).slice(0, 500))
 
-  const text = data.content?.map(c => c.text || '').join('') || '[]'
+  const text = data.choices?.[0]?.message?.content || '[]'
   const cleaned = text.replace(/```json|```/g, '').trim()
 
   try {
