@@ -1,0 +1,42 @@
+name: mc-ai-bot-runner
+
+on:
+  workflow_dispatch: {}      # elle başlatma
+  schedule:
+    - cron: '*/30 * * * *'   # her 30 dakikada bir kontrol eder, zaten çalışıyorsa yeni job çakışmaz
+
+# Aynı anda birden fazla instance açılmasın diye kilitliyoruz
+concurrency:
+  group: mc-ai-bot
+  cancel-in-progress: false
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350   # ~5sa50dk (GitHub'ın 6 saatlik sınırına takılmamak için)
+    steps:
+      - name: Repo'yu çek
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bağımlılıkları yükle
+        run: npm install
+
+      - name: Botu çalıştır
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MC_HOST: ${{ secrets.MC_HOST }}
+          MC_PORT: ${{ secrets.MC_PORT }}
+          MC_USERNAME: ${{ secrets.MC_USERNAME }}
+        run: node index.js
+
+      - name: Süre dolunca yeni job'u tetikle
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run mc-ai-bot-runner.yml --repo ${{ github.repository }} || true
